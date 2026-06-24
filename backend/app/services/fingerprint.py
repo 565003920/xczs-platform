@@ -1,44 +1,47 @@
+"""Teaching mode fingerprint — now integrated with template library."""
 from sqlalchemy.orm import Session
 from app.models.teaching import ClassModel, Observation
+from app.models.knowledge import TeachingModeTemplate
 from app.schemas.teaching import ModeFingerprintResponse, FingerprintScores
 
 
-def _determine_mode_label(lecture: float, discussion: float, practice: float) -> str:
-    if lecture > 0.6:
-        return "讲授主导型"
-    elif discussion > 0.5:
-        return "互动讨论型"
-    elif practice > 0.4:
-        return "实践驱动型"
-    else:
-        return "混合型(讲授+互动)"
+_LABEL_TO_TEMPLATE = {
+    "讲授主导型": ["讲授+练习式", "翻转课堂"],
+    "互动讨论型": ["对分课堂", "同伴教学法", "研讨式教学"],
+    "实践驱动型": ["PBL项目式学习", "探究式学习"],
+    "混合型(讲授+互动)": ["BOPPPS教学法", "混合式教学", "案例教学法", "5E教学法", "游戏化教学"],
+}
 
 
-def _generate_description(label: str, lecture: float, discussion: float, practice: float, question: float, participation: float) -> str:
-    parts = [f"该班级教学以讲授为主({lecture*100:.0f}%)" if lecture > 0.4 else ""]
-    if discussion > 0.2:
-        parts.append(f"辅以课堂互动({discussion*100:.0f}%)")
-    if practice > 0.15:
-        parts.append(f"和实践环节({practice*100:.0f}%)")
-    desc = "，".join([p for p in parts if p])
-    desc += "。"
-    if question >= 4:
-        desc += "提问层次较高，注重启发式教学。"
-    elif question >= 3:
-        desc += "提问以理解型为主。"
-    else:
-        desc += "提问偏向记忆型。"
-    if participation >= 4:
-        desc += "学生参与度较高。"
-    elif participation >= 3:
-        desc += "学生参与度中等偏上。"
-    else:
-        desc += "学生参与度有待提升。"
-    return desc
+def _match_template(db: Session, label: str, lecture: float, practice: float) -> TeachingModeTemplate | None:
+    """Find the best-matching template from the library."""
+    candidates = _LABEL_TO_TEMPLATE.get(label, [])
+    templates = db.query(TeachingModeTemplate).filter(
+        TeachingModeTemplate.category == "builtin",
+        TeachingModeTemplate.name.in_(candidates)
+    ).all()
+    if templates:
+        # Prefer practice-oriented if practice ratio is high
+        if practice > 0.35:
+            for t in templates:
+                if "实践" in t.suitable_scenarios or "项目" in t.name:
+                    return t
+        return templates[0]
+    # Fallback: fuzzy search by keyword
+    keywords = label.replace("型", "").replace("(", "").replace(")", "")
+    all_builtin = db.query(TeachingModeTemplate).filter(TeachingModeTemplate.category == "builtin").all()
+    for t in all_builtin:
+        if any(kw in t.name for kw in keywords.split("+")):
+            return t
+    return None
 
 
-def _generate_recommendations(label: str, lecture: float, practice: float, question: float, participation: float) -> list[str]:
+def _generate_recommendations(label: str, template: TeachingModeTemplate | None,
+                               lecture: float, practice: float, question: float, participation: float) -> list[str]:
+    """Generate recommendations, enriched by template library."""
     recs = []
+
+    # Data-driven suggestions
     if practice < 0.25:
         recs.append("建议增加PBL项目式学习环节以提升实践比重")
     if lecture > 0.6:
@@ -47,8 +50,17 @@ def _generate_recommendations(label: str, lecture: float, practice: float, quest
         recs.append("引入小组讨论和同伴互评提升学生参与度")
     if question < 3.5:
         recs.append("增加高阶思维提问（分析、评价、创造层次）")
-    if label == "讲授主导型":
-        recs.append("逐步引入翻转课堂，将部分内容移至课前自学")
+
+    # Template-aware suggestions
+    if template:
+        if template.limitations:
+            recs.append(f"当前模式注意点：{template.limitations}")
+        # Suggest complementary templates
+        if "讲授" in label and "翻转" not in " ".join(recs):
+            recs.append("逐步引入翻转课堂，将部分内容移至课前自学")
+        if "互动" in label and "PBL" not in " ".join(recs):
+            recs.append("可升级为PBL项目式学习，增强真实场景应用")
+
     return recs if recs else ["当前教学模式较为均衡，可继续保持并精细化数据追踪"]
 
 
@@ -72,9 +84,45 @@ def compute_fingerprint(db: Session, cls: ClassModel) -> ModeFingerprintResponse
     avg_question = sum(o.question_depth for o in obs_list) / obs_n / 5.0
     avg_participation = sum(o.student_participation for o in obs_list) / obs_n / 5.0
 
-    label = _determine_mode_label(avg_lecture, avg_discussion, avg_practice)
-    desc = _generate_description(label, avg_lecture, avg_discussion, avg_practice, avg_question * 5, avg_participation * 5)
-    recs = _generate_recommendations(label, avg_lecture, avg_practice, avg_question * 5, avg_participation * 5)
+    # Determine hard label, then match to template library
+    if avg_lecture > 0.6:
+        label = "讲授主导型"
+    elif avg_discussion > 0.5:
+        label = "互动讨论型"
+    elif avg_practice > 0.4:
+        label = "实践驱动型"
+    else:
+        label = "混合型(讲授+互动)"
+
+    template = _match_template(db, label, avg_lecture, avg_practice)
+
+    # Build description: use template's if available, else generate
+    if template:
+        desc = f"识别为「{template.name}」模式。{template.description or ''} "
+        desc += f"| 数据特征：讲授{avg_lecture*100:.0f}% 互动{avg_discussion*100:.0f}% 实践{avg_practice*100:.0f}%。"
+        if template.strengths:
+            desc += f"优势：{template.strengths}。"
+    else:
+        parts = [f"该班级教学以讲授为主({avg_lecture*100:.0f}%)" if avg_lecture > 0.4 else ""]
+        if avg_discussion > 0.2:
+            parts.append(f"辅以课堂互动({avg_discussion*100:.0f}%)")
+        if avg_practice > 0.15:
+            parts.append(f"和实践环节({avg_practice*100:.0f}%)")
+        desc = "，".join([p for p in parts if p]) + "。"
+        if avg_question * 5 >= 4:
+            desc += "提问层次较高。"
+        elif avg_question * 5 >= 3:
+            desc += "提问以理解型为主。"
+        else:
+            desc += "提问偏向记忆型。"
+        if avg_participation * 5 >= 4:
+            desc += "学生参与度较高。"
+        elif avg_participation * 5 >= 3:
+            desc += "学生参与度中等偏上。"
+        else:
+            desc += "学生参与度有待提升。"
+
+    recs = _generate_recommendations(label, template, avg_lecture, avg_practice, avg_question * 5, avg_participation * 5)
 
     return ModeFingerprintResponse(
         class_id=cls.id,
@@ -85,7 +133,7 @@ def compute_fingerprint(db: Session, cls: ClassModel) -> ModeFingerprintResponse
             question_level=round(avg_question, 2),
             student_centeredness=round(avg_participation, 2),
         ),
-        mode_label=label,
+        mode_label=template.name if template else label,
         mode_description=desc,
         mode_recommendations=recs,
         observation_count=obs_n,

@@ -7,13 +7,6 @@ import os
 import httpx
 from typing import Optional
 
-# ── Configuration ──
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "").lower()  # "deepseek" or "tongyi"
-LLM_API_KEY = os.getenv("LLM_API_KEY", "")
-LLM_API_URL = os.getenv("LLM_API_URL", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "")
-
-# Provider defaults
 PROVIDER_CONFIG = {
     "deepseek": {
         "api_url": "https://api.deepseek.com/v1/chat/completions",
@@ -28,16 +21,22 @@ PROVIDER_CONFIG = {
 
 def is_configured() -> bool:
     """Check if LLM is properly configured and ready to use."""
-    return bool(LLM_API_KEY and LLM_PROVIDER in PROVIDER_CONFIG)
+    provider = os.getenv("LLM_PROVIDER", "").lower()
+    api_key = os.getenv("LLM_API_KEY", "")
+    return bool(api_key and provider in PROVIDER_CONFIG)
 
 
 def _get_config() -> dict:
-    """Get provider config with env overrides."""
-    base = PROVIDER_CONFIG.get(LLM_PROVIDER, {})
+    """Get provider config with env overrides (lazy read)."""
+    provider = os.getenv("LLM_PROVIDER", "").lower()
+    api_key = os.getenv("LLM_API_KEY", "")
+    api_url = os.getenv("LLM_API_URL", "")
+    model = os.getenv("LLM_MODEL", "")
+    base = PROVIDER_CONFIG.get(provider, {})
     return {
-        "api_url": LLM_API_URL or base.get("api_url", ""),
-        "model": LLM_MODEL or base.get("default_model", ""),
-        "api_key": LLM_API_KEY,
+        "api_url": api_url or base.get("api_url", ""),
+        "model": model or base.get("default_model", ""),
+        "api_key": api_key,
     }
 
 

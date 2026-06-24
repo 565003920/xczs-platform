@@ -33,4 +33,5 @@ app.include_router(auth_router)
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    from app.services.llm import is_configured
+    return {"status": "ok", "llm_configured": is_configured()}

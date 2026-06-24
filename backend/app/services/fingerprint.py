@@ -1,8 +1,9 @@
-"""Teaching mode fingerprint — now integrated with template library."""
+"""Teaching mode fingerprint — integrated with template library + optional LLM."""
 from sqlalchemy.orm import Session
 from app.models.teaching import ClassModel, Observation
 from app.models.knowledge import TeachingModeTemplate
 from app.schemas.teaching import ModeFingerprintResponse, FingerprintScores
+from app.services.llm import call_llm
 
 
 _LABEL_TO_TEMPLATE = {
@@ -123,6 +124,26 @@ def compute_fingerprint(db: Session, cls: ClassModel) -> ModeFingerprintResponse
             desc += "学生参与度有待提升。"
 
     recs = _generate_recommendations(label, template, avg_lecture, avg_practice, avg_question * 5, avg_participation * 5)
+
+    # ── LLM enhancement ──
+    if template:
+        llm_desc = call_llm(
+            system_prompt="你是一位教学诊断专家。请根据课堂教学数据生成一段80字以内的教学模式描述，包含模式名称、数据特征和优势。直接输出，不要前缀。",
+            user_prompt=f"模式：{template.name}，讲授{avg_lecture*100:.0f}% 互动{avg_discussion*100:.0f}% 实践{avg_practice*100:.0f}%，提问层次{avg_question*5:.0f}/5，学生参与度{avg_participation*5:.0f}/5。模板描述：{template.description or ''}。优势：{template.strengths or ''}",
+            max_tokens=150,
+        )
+        if llm_desc:
+            desc = llm_desc
+
+        llm_recs = call_llm(
+            system_prompt="你是一位教学改进顾问。请根据教学模式数据生成2条具体的改进建议，每条20字以内。直接输出，用换行分隔。",
+            user_prompt=f"讲授{avg_lecture*100:.0f}% 实践{avg_practice*100:.0f}% 参与度{avg_participation*5:.0f}/5。模式：{template.name}。局限：{template.limitations or ''}。已有建议：{'；'.join(recs[:2])}",
+            max_tokens=100,
+        )
+        if llm_recs:
+            new_recs = [r.strip() for r in llm_recs.strip().split("\n") if r.strip()]
+            if new_recs:
+                recs = new_recs + recs
 
     return ModeFingerprintResponse(
         class_id=cls.id,

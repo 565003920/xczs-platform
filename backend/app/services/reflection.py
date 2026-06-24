@@ -1,6 +1,7 @@
-"""Post-class reflection assistant."""
+"""Post-class reflection assistant — with optional LLM enhancement."""
 from sqlalchemy.orm import Session
 from app.models.teaching import ClassModel, Observation, Grade, Evaluation
+from app.services.llm import call_llm
 
 
 def generate_reflection(db: Session, class_id: int, observation_id: int = None) -> dict:
@@ -48,6 +49,17 @@ def generate_reflection(db: Session, class_id: int, observation_id: int = None) 
         suggestions.append("考虑放慢教学节奏，增设课后辅导环节")
     if not suggestions:
         suggestions.append("当前教学节奏良好，继续保持并追踪学情变化")
+
+    # ── LLM enhancement ──
+    llm_suggestions = call_llm(
+        system_prompt="你是一位教学督导。请根据课堂观察数据生成2条具体的改进建议，每条30字以内。直接输出，用换行分隔。",
+        user_prompt=f"互动{obs.interaction_frequency}/5，提问深度{obs.question_depth}/5，参与度{obs.student_participation}/5，满意度{satisfaction}，近期均分{avg_recent:.1f}。模式：{obs.teaching_style_label or '未知'}。已有建议：{'；'.join(suggestions)}",
+        max_tokens=120,
+    )
+    if llm_suggestions:
+        for line in llm_suggestions.strip().split("\n"):
+            if line.strip():
+                suggestions.append(line.strip())
 
     return {
         "class_id": class_id,

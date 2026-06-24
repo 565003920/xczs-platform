@@ -1,9 +1,10 @@
-"""Smart lesson plan generation — integrated with template library."""
+"""Smart lesson plan generation — integrated with template library + optional LLM."""
 from sqlalchemy.orm import Session
 from app.models.teaching import ClassModel, Grade, Observation
 from app.models.knowledge import KnowledgeNode, TeachingModeTemplate
 from app.services.profile import compute_profile
 from app.services.fingerprint import _match_template
+from app.services.llm import call_llm
 
 
 def _get_class_mode_template(db: Session, class_id: int) -> TeachingModeTemplate | None:
@@ -71,6 +72,17 @@ def generate_lesson_plan(db: Session, class_id: int, lesson_topic: str, duration
     ]
     if template and template.strengths:
         tips.append(f"✅ 该模式优势：{template.strengths}")
+
+    # ── LLM enhancement: add teaching tips ──
+    llm_tip = call_llm(
+        system_prompt="你是一位经验丰富的大学教师。请根据班级学情数据生成2条具体的教学提示，每条20字以内。直接输出，用换行分隔。",
+        user_prompt=f"课程：{cls.course.name if cls.course else ''}，课题：{lesson_topic}，班级均分：{profile.avg_grade}分，知识掌握度：{profile.dimensions.knowledge_mastery*100:.0f}%，参与度：{profile.dimensions.participation*100:.0f}%",
+        max_tokens=100,
+    )
+    if llm_tip:
+        for line in llm_tip.strip().split("\n"):
+            if line.strip():
+                tips.append(f"🤖 {line.strip()}")
 
     return {
         "class_id": class_id, "class_name": cls.name,

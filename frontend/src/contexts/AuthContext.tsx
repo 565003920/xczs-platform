@@ -46,9 +46,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await r.json();
     sessionStorage.setItem('xczs_token', data.token);
     setToken(data.token); setUser(data.user);
-    // Set axios default header
-    const m = await import('../api/client');
-    m.default.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
   }, []);
 
   const logout = useCallback(() => {

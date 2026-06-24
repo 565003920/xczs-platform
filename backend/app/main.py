@@ -2,8 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
+from app.models import teaching, knowledge  # noqa: ensure all models loaded
 from app.routers import courses, classes_, data_import
 from app.routers.analysis_routes import router as analysis_router
+from app.routers.comparison_routes import router as comparison_router
+from app.routers.modes import router as modes_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -20,6 +23,8 @@ app.include_router(courses.router)
 app.include_router(classes_.router)
 app.include_router(data_import.router)
 app.include_router(analysis_router)
+app.include_router(comparison_router)
+app.include_router(modes_router)
 
 
 @app.get("/api/health")

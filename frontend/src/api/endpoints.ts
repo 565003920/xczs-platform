@@ -37,3 +37,27 @@ export const getModeFingerprint = (classId: number) =>
   client.get<ModeFingerprint>(`/analysis/fingerprint/${classId}`).then(r => r.data);
 export const getDiagnosis = (classId: number) =>
   client.get<DiagnosisReport>(`/analysis/diagnosis/${classId}`).then(r => r.data);
+
+// Comparison (v1.5)
+export const getModeComparison = (classA: number, classB: number) =>
+  client.get('/analysis/compare/modes', { params: { class_a: classA, class_b: classB } }).then(r => r.data);
+export const getCrossTeacherComparison = (courseId: number) =>
+  client.get('/analysis/compare/cross-teacher', { params: { course_id: courseId } }).then(r => r.data);
+export const getTeacherTrend = (courseId: number) =>
+  client.get('/analysis/trend/teacher', { params: { course_id: courseId } }).then(r => r.data);
+
+// Mode Library (v1.5)
+export const getModeTemplates = (category?: string) =>
+  client.get('/modes/templates', { params: category ? { category } : {} }).then(r => r.data);
+export const getCustomModes = (courseId?: number) =>
+  client.get('/modes/custom', { params: courseId ? { course_id: courseId } : {} }).then(r => r.data);
+export const createCustomMode = (data: any) =>
+  client.post('/modes/custom', data).then(r => r.data);
+export const updateCustomMode = (id: number, data: any) =>
+  client.put(`/modes/custom/${id}`, data).then(r => r.data);
+export const deleteCustomMode = (id: number) =>
+  client.delete(`/modes/custom/${id}`).then(r => r.data);
+export const recommendModes = (classId?: number) =>
+  client.get('/modes/recommend', { params: classId ? { class_id: classId } : {} }).then(r => r.data);
+export const getKnowledgeGraph = (courseId: number) =>
+  client.get('/modes/knowledge-graph', { params: { course_id: courseId } }).then(r => r.data);

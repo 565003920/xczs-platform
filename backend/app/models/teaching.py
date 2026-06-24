@@ -26,6 +26,7 @@ class ClassModel(Base):
     name = Column(String(200), nullable=False, comment="班级名称")
     course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
     semester = Column(String(50), comment="学期")
+    semester_index = Column(Integer, default=1, comment="学期序号，用于时间序列排序")
     student_count = Column(Integer, default=0)
     created_at = Column(DateTime, server_default=func.now())
 

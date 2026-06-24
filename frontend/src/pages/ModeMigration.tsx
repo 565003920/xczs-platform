@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Select, Spin, Empty, Tag, List, Typography, Progress } from 'antd';
+import { Card, Select, Spin, Empty, Tag, List, Typography, Progress, Descriptions } from 'antd';
 import { SwapOutlined } from '@ant-design/icons';
 import { getClasses } from '../api/endpoints';
 import type { ClassModel } from '../types';

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Select, Spin, Empty, Descriptions, Table, Tag, Typography } from 'antd';
+import { Card, Select, Spin, Empty, Descriptions, Table, Tag, Typography, Row, Col } from 'antd';
 import { getClasses, getStudentProfile } from '../api/endpoints';
 import type { ClassModel } from '../types';
 

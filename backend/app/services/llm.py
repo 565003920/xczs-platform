@@ -55,7 +55,10 @@ def call_llm(system_prompt: str, user_prompt: str, max_tokens: int = 300) -> Opt
     cfg = _get_config()
     start = time.time()
 
-    logger.info(f"[LLM] → Calling {cfg['model']} ({len(user_prompt)} chars input, max_tokens={max_tokens})")
+    logger.info("=" * 60)
+    logger.info(f"[LLM] → REQUEST: {cfg['model']} | max_tokens={max_tokens}")
+    logger.info(f"[LLM] → SYSTEM: {system_prompt}")
+    logger.info(f"[LLM] → USER:   {user_prompt}")
 
     headers = {
         "Authorization": f"Bearer {cfg['api_key']}",
@@ -76,15 +79,17 @@ def call_llm(system_prompt: str, user_prompt: str, max_tokens: int = 300) -> Opt
         elapsed = time.time() - start
 
         if resp.status_code != 200:
-            logger.error(f"[LLM] ← API error ({resp.status_code} in {elapsed:.1f}s): {resp.text[:300]}")
+            logger.error(f"[LLM] ← ERROR {resp.status_code} in {elapsed:.1f}s: {resp.text[:500]}")
+            logger.info("=" * 60)
             return None
 
         data = resp.json()
         content = data["choices"][0]["message"]["content"].strip()
         tokens_used = data.get("usage", {}).get("total_tokens", "?")
 
-        logger.info(f"[LLM] ← Response OK ({elapsed:.1f}s, {tokens_used} tokens, {len(content)} chars)")
-        logger.debug(f"[LLM] ← Content: {content[:200]}...")
+        logger.info(f"[LLM] ← RESPONSE: {elapsed:.1f}s | {tokens_used} tokens | {len(content)} chars")
+        logger.info(f"[LLM] ← CONTENT: {content}")
+        logger.info("=" * 60)
 
         return content
     except Exception as e:

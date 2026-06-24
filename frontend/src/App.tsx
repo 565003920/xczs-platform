@@ -1,11 +1,14 @@
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, ConfigProvider } from 'antd';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { Layout, Menu, ConfigProvider, Tag, Button } from 'antd';
 import {
   DashboardOutlined, UploadOutlined, RadarChartOutlined, AimOutlined,
   FileTextOutlined, SwapOutlined, BookOutlined, ToolOutlined, DatabaseOutlined,
+  LogoutOutlined, UserOutlined,
 } from '@ant-design/icons';
 import zhCN from 'antd/locale/zh_CN';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
+import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import DataImport from './pages/DataImport';
 import ClassProfile from './pages/ClassProfile';
@@ -29,7 +32,7 @@ import NotificationBell from './components/NotificationBell';
 
 const { Header, Sider, Content } = Layout;
 
-const menuItems = [
+const allMenuItems: any[] = [
   { key: '/', icon: <DashboardOutlined />, label: '教师工作台' },
   { key: '/import', icon: <UploadOutlined />, label: '数据导入' },
   { key: '/compare', icon: <SwapOutlined />, label: '对比分析', children: [
@@ -51,7 +54,7 @@ const menuItems = [
     { key: '/tools/reflection', label: '课后反思' },
   ]},
   { key: '/diagnosis', icon: <FileTextOutlined />, label: '诊断报告' },
-  { key: '/assets', icon: <DatabaseOutlined />, label: '数据资产', children: [
+  { key: '/assets', icon: <DatabaseOutlined />, label: '数据资产', role: 'admin', children: [
     { key: '/assets/catalog', label: '资产目录' },
     { key: '/assets/lineage', label: '数据血缘' },
     { key: '/assets/dashboard', label: '效果仪表盘' },
@@ -59,11 +62,17 @@ const menuItems = [
   ]},
 ];
 
-function AppLayout() {
+function ProtectedLayout() {
+  const { user, role, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
   const selectedKey = '/' + location.pathname.split('/').filter(Boolean).join('/');
   const openKeys = ['/compare', '/modes', '/tools', '/assets'].filter(k => selectedKey.startsWith(k));
+  const menuItems = allMenuItems.filter(item => !item.role || item.role === role);
+  const roleColors: Record<string, string> = { teacher: 'blue', admin: 'purple' };
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -79,7 +88,11 @@ function AppLayout() {
         <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           borderBottom: '1px solid #f0f0f0', height: 56 }}>
           <span style={{ fontSize: 14, color: '#888' }}>数据驱动的教学过程智能诊断平台 · v2.0</span>
-          <NotificationBell />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <NotificationBell />
+            <Tag color={roleColors[role || 'teacher']} icon={<UserOutlined />}>{user?.name || role}</Tag>
+            <Button type="text" icon={<LogoutOutlined />} onClick={() => { logout(); navigate('/login'); }}>退出</Button>
+          </div>
         </Header>
         <Content style={{ margin: 16, padding: 24, background: '#fff', borderRadius: 8, minHeight: 280 }}>
           <Routes>
@@ -112,9 +125,14 @@ function AppLayout() {
 export default function App() {
   return (
     <ConfigProvider locale={zhCN} theme={{ token: { colorPrimary: '#1677FF' } }}>
-      <BrowserRouter>
-        <AppLayout />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/*" element={<ProtectedLayout />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </ConfigProvider>
   );
 }

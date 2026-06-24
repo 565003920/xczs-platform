@@ -30,13 +30,14 @@ export default function ReflectionReport() {
   const achieveColor = data?.achievement_estimation?.level === '优秀' ? '#52c41a' :
     data?.achievement_estimation?.level === '良好' ? '#1677FF' : data?.achievement_estimation?.level === '一般' ? '#faad14' : '#ff4d4f';
 
+  const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
+
   return (
     <div>
       <h2 style={{ marginBottom: 24 }}>课后反思助手</h2>
       <Card style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
           <div><Text>班级</Text><Select showSearch placeholder="选择班级" style={{ width: 220 }} value={classId} onChange={setClassId}
-          const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
             options={classes.map(c => ({ label: `${courseMap[c.course_id] || '?'} — ${c.name}`, value: c.id }))} /></div>
           <Button type="primary" loading={loading} onClick={generate}>生成反思报告</Button>
         </div>

@@ -51,3 +51,36 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
     if not data:
         raise HTTPException(status_code=401, detail="登录已过期，请重新登录")
     return data
+
+
+# ── Ownership filter utilities ──
+from app.models.teaching import Course, ClassModel
+from sqlalchemy.orm import Session
+
+
+def owner_filter(query, user: dict):
+    """Filter Course queries by owner_id. Admins see all."""
+    if user.get("role") != "admin":
+        query = query.filter((Course.owner_id == user["user_id"]) | (Course.owner_id == None))
+    return query
+
+
+def filter_classes_by_owner(query, user: dict):
+    """Filter ClassModel queries through Course.owner_id. Admins see all."""
+    if user.get("role") == "admin":
+        return query
+    return query.join(Course).filter(
+        (Course.owner_id == user["user_id"]) | (Course.owner_id == None)
+    )
+
+
+def check_class_access(db: Session, class_id: int, user: dict):
+    """Raise 404 if class doesn't exist or user has no access."""
+    cls = db.query(ClassModel).filter(ClassModel.id == class_id).first()
+    if not cls:
+        raise HTTPException(status_code=404, detail="班级不存在")
+    if user.get("role") != "admin":
+        course = db.query(Course).filter(Course.id == cls.course_id).first()
+        if course and course.owner_id and course.owner_id != user["user_id"]:
+            raise HTTPException(status_code=404, detail="班级不存在")
+    return cls

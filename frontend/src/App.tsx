@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Layout, Menu, ConfigProvider, Tag, Button } from 'antd';
+import { Layout, Menu, ConfigProvider, Tag, Button, Spin } from 'antd';
 import {
   DashboardOutlined, UploadOutlined, RadarChartOutlined, AimOutlined,
   FileTextOutlined, SwapOutlined, BookOutlined, ToolOutlined, DatabaseOutlined,
@@ -63,10 +63,11 @@ const allMenuItems: any[] = [
 ];
 
 function ProtectedLayout() {
-  const { user, role, logout, isAuthenticated } = useAuth();
+  const { user, role, logout, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin size="large" /></div>;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   const selectedKey = '/' + location.pathname.split('/').filter(Boolean).join('/');
@@ -90,7 +91,7 @@ function ProtectedLayout() {
           <span style={{ fontSize: 14, color: '#888' }}>数据驱动的教学过程智能诊断平台 · v2.0</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <NotificationBell />
-            <Tag color={roleColors[role || 'teacher']} icon={<UserOutlined />}>{user?.name || role}</Tag>
+            <Tag color={roleColors[role || 'teacher']} icon={<UserOutlined />}>{user?.display_name || user?.username}</Tag>
             <Button type="text" icon={<LogoutOutlined />} onClick={() => { logout(); navigate('/login'); }}>退出</Button>
           </div>
         </Header>

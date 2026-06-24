@@ -1,77 +1,59 @@
-import { Card, Button, Radio, Space, Typography, Input } from 'antd';
-import { UserOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { Card, Button, Form, Input, Typography, message } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth, type Role } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
 export default function LoginPage() {
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
-  const [role, setRole] = useState<Role>('teacher');
-  const [name, setName] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => { if (isAuthenticated) navigate('/'); }, [isAuthenticated, navigate]);
 
-  const handleLogin = () => { login(role, name || undefined); };
+  const onFinish = async (values: { username: string; password: string }) => {
+    setSubmitting(true);
+    try {
+      await login(values.username, values.password);
+    } catch (e: any) {
+      message.error(e.message || '登录失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) return null;
 
   return (
-    <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
       <Card style={{ width: 400, borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <Title level={3} style={{ marginBottom: 4 }}>学程智枢</Title>
           <Text type="secondary">数据驱动的教学过程智能诊断平台</Text>
         </div>
 
-        <div style={{ marginBottom: 24 }}>
-          <Text strong style={{ display: 'block', marginBottom: 12 }}>选择身份</Text>
-          <Radio.Group value={role} onChange={e => setRole(e.target.value)} style={{ width: '100%' }}>
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Card
-                hoverable
-                size="small"
-                style={{ border: role === 'teacher' ? '2px solid #1677FF' : '2px solid transparent', background: role === 'teacher' ? '#e6f4ff' : '#fafafa' }}
-                onClick={() => setRole('teacher')}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <UserOutlined style={{ fontSize: 28, color: '#1677FF' }} />
-                  <div>
-                    <Text strong>教师</Text>
-                    <div><Text type="secondary" style={{ fontSize: 12 }}>查看学情画像、使用教学工具</Text></div>
-                  </div>
-                </div>
-              </Card>
-              <Card
-                hoverable
-                size="small"
-                style={{ border: role === 'admin' ? '2px solid #722ED1' : '2px solid transparent', background: role === 'admin' ? '#f9f0ff' : '#fafafa' }}
-                onClick={() => setRole('admin')}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <SafetyCertificateOutlined style={{ fontSize: 28, color: '#722ED1' }} />
-                  <div>
-                    <Text strong>管理员</Text>
-                    <div><Text type="secondary" style={{ fontSize: 12 }}>管理数据资产、审计日志、全部功能</Text></div>
-                  </div>
-                </div>
-              </Card>
-            </Space>
-          </Radio.Group>
+        <Form onFinish={onFinish} size="large">
+          <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
+            <Input prefix={<UserOutlined />} placeholder="用户名" />
+          </Form.Item>
+          <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
+            <Input.Password prefix={<LockOutlined />} placeholder="密码" />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" htmlType="submit" block loading={submitting}>登录</Button>
+          </Form.Item>
+        </Form>
+
+        <div style={{ background: '#f6f8fa', borderRadius: 8, padding: 12, fontSize: 12, color: '#666' }}>
+          <Text strong style={{ fontSize: 12 }}>演示账号</Text>
+          <div style={{ marginTop: 4 }}>教师：zhang / 123456（数据结构+软件工程）</div>
+          <div>教师：li / 123456（操作系统+数据库原理）</div>
+          <div>教师：wang / 123456（计算机网络+人工智能导论）</div>
+          <div>管理员：admin / admin（全部数据）</div>
         </div>
-
-        {role === 'teacher' && (
-          <div style={{ marginBottom: 16 }}>
-            <Input placeholder="教师姓名（可留空）" value={name} onChange={e => setName(e.target.value)} />
-          </div>
-        )}
-
-        <Button type="primary" size="large" block onClick={handleLogin}>
-          进入平台
-        </Button>
       </Card>
     </div>
   );

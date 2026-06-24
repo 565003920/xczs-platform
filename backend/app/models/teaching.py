@@ -13,9 +13,11 @@ class Course(Base):
     department = Column(String(100), comment="开课院系")
     credits = Column(Float, default=3.0, comment="学分")
     teacher_name = Column(String(100), comment="授课教师")
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True, comment="数据归属用户")
     semester = Column(String(50), comment="学期，如 2024-2025-1")
     created_at = Column(DateTime, server_default=func.now())
 
+    owner = relationship("User")
     classes = relationship("ClassModel", back_populates="course", cascade="all, delete-orphan")
 
 

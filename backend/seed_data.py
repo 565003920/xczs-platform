@@ -10,8 +10,20 @@ from app.database import engine, SessionLocal, Base
 from app.models.teaching import Course, ClassModel, Student, Grade, Observation, Evaluation
 from app.models.knowledge import TeachingModeTemplate, KnowledgeNode, KnowledgeEdge
 from app.models.audit import AuditLog, Notification
+from app.models.user import User, hash_password
 
 random.seed(42)
+
+# ── Users ──
+USERS = [
+    {"username": "zhang", "password": "123456", "display_name": "张教授", "role": "teacher"},
+    {"username": "li", "password": "123456", "display_name": "李副教授", "role": "teacher"},
+    {"username": "wang", "password": "123456", "display_name": "王教授", "role": "teacher"},
+    {"username": "admin", "password": "admin", "display_name": "管理员", "role": "admin"},
+]
+
+# ── Course → owner mapping (user index 0=zhang, 1=li, 2=wang) ──
+COURSE_OWNERS = [0, 1, 2, 0, 1, 2]  # course 1→zhang, 2→li, 3→wang, 4→zhang, 5→li, 6→wang
 
 # ── data definitions ──
 
@@ -136,15 +148,25 @@ CLASS_PERSONALITIES = {
 def seed(db: Session):
     print("=== 学程智枢 v2.0 全流程测试数据生成 ===")
 
+    # ── 0. Users ──
+    user_ids = []
+    for u in USERS:
+        obj = User(username=u["username"], password_hash=hash_password(u["password"]),
+                   display_name=u["display_name"], role=u["role"])
+        db.add(obj); db.flush()
+        user_ids.append(obj.id)
+    db.commit()
+    print(f"✅ 用户: {len(user_ids)} (教师: zhang/li/wang 密码123456, 管理员: admin/admin)")
+
     # ── 1. Courses ──
     course_ids = []
-    for c in COURSES:
-        obj = Course(**c)
-        db.add(obj)
-        db.flush()
+    for i, c in enumerate(COURSES):
+        owner_idx = COURSE_OWNERS[i] if i < len(COURSE_OWNERS) else 0
+        obj = Course(**c, owner_id=user_ids[owner_idx])
+        db.add(obj); db.flush()
         course_ids.append(obj.id)
     db.commit()
-    print(f"✅ 课程: {len(course_ids)}")
+    print(f"✅ 课程: {len(course_ids)} (已分配归属)")
 
     # ── 2. Classes ──
     class_ids = []

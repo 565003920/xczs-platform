@@ -24,12 +24,13 @@ export default function StudentProfile() {
     getClassStudentsLocal(classId).then(d => setStudents(d.value || (Array.isArray(d) ? d : []))).finally(() => setLoading(false));
   }, [classId]);
 
+  const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
+
   return (
     <div>
       <h2 style={{ marginBottom: 24 }}>个体学情画像</h2>
       <div style={{ marginBottom: 20 }}>
         <Select showSearch placeholder="选择班级" style={{ width: 320 }} value={classId} onChange={setClassId}
-          const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
           options={classes.map(c => ({ label: `${courseMap[c.course_id] || '?'} — ${c.name}`, value: c.id }))} />
       </div>
 

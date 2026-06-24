@@ -20,7 +20,7 @@ export default function StudentProfile() {
   useEffect(() => {
     if (!classId) return;
     setLoading(true);
-    getClassStudentsLocal(classId).then(d => setStudents(Array.isArray(d) ? d : [])).finally(() => setLoading(false));
+    getClassStudentsLocal(classId).then(d => setStudents(d.value || (Array.isArray(d) ? d : []))).finally(() => setLoading(false));
   }, [classId]);
 
   return (

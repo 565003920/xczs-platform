@@ -4,8 +4,12 @@ Supports DeepSeek and Tongyi (通义千问).
 When no API key is configured, falls back to None (caller uses rule-based logic).
 """
 import os
+import time
+import logging
 import httpx
 from typing import Optional
+
+logger = logging.getLogger("xczs.llm")
 
 PROVIDER_CONFIG = {
     "deepseek": {
@@ -49,6 +53,10 @@ def call_llm(system_prompt: str, user_prompt: str, max_tokens: int = 300) -> Opt
         return None
 
     cfg = _get_config()
+    start = time.time()
+
+    logger.info(f"[LLM] → Calling {cfg['model']} ({len(user_prompt)} chars input, max_tokens={max_tokens})")
+
     headers = {
         "Authorization": f"Bearer {cfg['api_key']}",
         "Content-Type": "application/json",
@@ -65,11 +73,21 @@ def call_llm(system_prompt: str, user_prompt: str, max_tokens: int = 300) -> Opt
 
     try:
         resp = httpx.post(cfg["api_url"], json=body, headers=headers, timeout=30)
+        elapsed = time.time() - start
+
         if resp.status_code != 200:
-            print(f"[LLM] API error: {resp.status_code} {resp.text[:200]}")
+            logger.error(f"[LLM] ← API error ({resp.status_code} in {elapsed:.1f}s): {resp.text[:300]}")
             return None
+
         data = resp.json()
-        return data["choices"][0]["message"]["content"].strip()
+        content = data["choices"][0]["message"]["content"].strip()
+        tokens_used = data.get("usage", {}).get("total_tokens", "?")
+
+        logger.info(f"[LLM] ← Response OK ({elapsed:.1f}s, {tokens_used} tokens, {len(content)} chars)")
+        logger.debug(f"[LLM] ← Content: {content[:200]}...")
+
+        return content
     except Exception as e:
-        print(f"[LLM] Request failed: {e}")
+        elapsed = time.time() - start
+        logger.error(f"[LLM] ← Request failed ({elapsed:.1f}s): {e}")
         return None

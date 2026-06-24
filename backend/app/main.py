@@ -1,5 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import logging
+
+# Configure logging for LLM module
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s %(message)s")
+logging.getLogger("xczs.llm").setLevel(logging.INFO)
 
 from app.database import engine, Base
 from app.models import teaching, knowledge, audit, user  # noqa: ensure all models loaded

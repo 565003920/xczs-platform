@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Badge, Popover, List, Button, Typography, Empty, Spin } from 'antd';
 import { BellOutlined } from '@ant-design/icons';
+import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../api/endpoints';
 
 const { Text } = Typography;
 
@@ -12,7 +13,7 @@ export default function NotificationBell() {
 
   const fetchNotifications = () => {
     setLoading(true);
-    fetch('/api/v2/notifications?unread_only=true').then(r => r.json()).then(d => {
+    getNotifications(true).then(d => {
       setUnread(d.unread_count || 0);
       setItems(d.items || []);
     }).finally(() => setLoading(false));
@@ -21,11 +22,11 @@ export default function NotificationBell() {
   useEffect(() => { fetchNotifications(); const t = setInterval(fetchNotifications, 30000); return () => clearInterval(t); }, []);
 
   const markRead = (id: number) => {
-    fetch(`/api/v2/notifications/${id}/read`, { method: 'PUT' }).then(fetchNotifications);
+    markNotificationRead(id).then(fetchNotifications);
   };
 
   const markAllRead = () => {
-    fetch('/api/v2/notifications/read-all', { method: 'PUT' }).then(() => { setUnread(0); setOpen(false); });
+    markAllNotificationsRead().then(() => { setUnread(0); setOpen(false); });
   };
 
   const content = (

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Select, Button, Spin, Empty, Descriptions, Tag, List, Typography, Progress } from 'antd';
 import { BulbOutlined, WarningOutlined } from '@ant-design/icons';
-import { getClasses, getCourses } from '../api/endpoints';
+import { getClasses, getCourses, generateReflection } from '../api/endpoints';
 import type { ClassModel, Course } from '../types';
 
 const { Text, Title } = Typography;
@@ -19,11 +19,8 @@ export default function ReflectionReport() {
     if (!classId) return;
     setLoading(true);
     try {
-      const r = await fetch('/api/v2/reflection/generate', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ class_id: classId }),
-      });
-      setData(await r.json());
+      const res = await generateReflection({ class_id: classId });
+      setData(res);
     } finally { setLoading(false); }
   };
 

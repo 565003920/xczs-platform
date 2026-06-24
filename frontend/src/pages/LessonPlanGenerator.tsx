@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, Select, Input, InputNumber, Button, Spin, Empty, Tag, Timeline, Descriptions, Typography, Alert, Row, Col } from 'antd';
-import { getClasses, getCourses } from '../api/endpoints';
+import { getClasses, getCourses, generateLessonPlan } from '../api/endpoints';
 import type { ClassModel, Course } from '../types';
 
 const { Text } = Typography;
@@ -20,11 +20,8 @@ export default function LessonPlanGenerator() {
     if (!classId) return;
     setLoading(true);
     try {
-      const r = await fetch('/api/v2/lesson-plan/generate', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ class_id: classId, lesson_topic: topic, duration }),
-      });
-      setPlan(await r.json());
+      const plan = await generateLessonPlan({ class_id: classId, lesson_topic: topic, duration });
+      setPlan(plan);
     } finally { setLoading(false); }
   };
 

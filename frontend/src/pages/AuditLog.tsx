@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Card, Table, Tag, Spin, Empty } from 'antd';
+import { getAuditLogs } from '../api/endpoints';
 
 export default function AuditLog() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/v2/audit/logs?size=50').then(r => r.json()).then(setData).finally(() => setLoading(false));
+    getAuditLogs().then(setData).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '80px auto' }} />;

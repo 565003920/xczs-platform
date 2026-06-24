@@ -1,12 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Card, Select, Spin, Empty, Descriptions, Table, Tag, Typography, Row, Col } from 'antd';
-import { getClasses, getCourses, getStudentProfile } from '../api/endpoints';
+import { getClasses, getCourses, getStudentProfile, getClassStudents } from '../api/endpoints';
 import type { ClassModel, Course } from '../types';
 
 const { Text } = Typography;
-// Local API call
-const getStudentProfileLocal = (id: number) => fetch(`/api/v2/student/${id}/profile`).then(r => r.json());
-const getClassStudentsLocal = (id: number) => fetch(`/api/v2/class/${id}/students`).then(r => r.json());
 
 export default function StudentProfile() {
   const [classes, setClasses] = useState<ClassModel[]>([]);
@@ -21,7 +18,7 @@ export default function StudentProfile() {
   useEffect(() => {
     if (!classId) return;
     setLoading(true);
-    getClassStudentsLocal(classId).then(d => setStudents(d.value || (Array.isArray(d) ? d : []))).finally(() => setLoading(false));
+    getClassStudents(classId).then(d => setStudents(d.value || (Array.isArray(d) ? d : []))).finally(() => setLoading(false));
   }, [classId]);
 
   const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));

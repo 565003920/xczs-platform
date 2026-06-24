@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Table, Tag, Progress, Spin } from 'antd';
 import { DatabaseOutlined, CheckCircleOutlined, WarningOutlined } from '@ant-design/icons';
-
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+import { getCatalogSummary, getCatalogQuality } from '../api/endpoints';
 
 export default function DataCatalog() {
   const [summary, setSummary] = useState<any>(null);
   const [quality, setQuality] = useState<any>(null);
 
   useEffect(() => {
-    Promise.all([fetcher('/api/v2/catalog/summary'), fetcher('/api/v2/catalog/quality')])
+    Promise.all([getCatalogSummary(), getCatalogQuality()])
       .then(([s, q]) => { setSummary(s); setQuality(q); });
   }, []);
 

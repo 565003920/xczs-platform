@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Table, Progress, Spin } from 'antd';
 import { DashboardOutlined, TrophyOutlined, BookOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
-
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+import { getEffectivenessDashboard } from '../api/endpoints';
 
 export default function EffectivenessDashboard() {
   const [data, setData] = useState<any>(null);
 
-  useEffect(() => { fetcher('/api/v2/dashboard/effectiveness').then(setData); }, []);
+  useEffect(() => { getEffectivenessDashboard().then(setData); }, []);
 
   if (!data) return <Spin size="large" style={{ display: 'block', margin: '80px auto' }} />;
 

@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Card, Select, Spin, Empty, Tag, List, Typography, Progress, Descriptions } from 'antd';
 import { SwapOutlined } from '@ant-design/icons';
-import { getClasses, getCourses } from '../api/endpoints';
+import { getClasses, getCourses, getMigrationRecommend } from '../api/endpoints';
 import type { ClassModel, Course } from '../types';
 
 const { Text, Title } = Typography;
-
-const getMigration = (classId: number) => fetch(`/api/v2/migration/recommend?target_class_id=${classId}`).then(r => r.json());
 
 export default function ModeMigration() {
   const [classes, setClasses] = useState<ClassModel[]>([]);
@@ -20,7 +18,7 @@ export default function ModeMigration() {
   useEffect(() => {
     if (!classId) return;
     setLoading(true);
-    getMigration(classId).then(setData).finally(() => setLoading(false));
+    getMigrationRecommend(classId).then(setData).finally(() => setLoading(false));
   }, [classId]);
 
   const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));

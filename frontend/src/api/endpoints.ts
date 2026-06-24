@@ -61,3 +61,32 @@ export const recommendModes = (classId?: number) =>
   client.get('/modes/recommend', { params: classId ? { class_id: classId } : {} }).then(r => r.data);
 export const getKnowledgeGraph = (courseId: number) =>
   client.get('/modes/knowledge-graph', { params: { course_id: courseId } }).then(r => r.data);
+
+// ── v2.0 API ──
+// Student & Migration
+export const getClassStudents = (classId: number) =>
+  client.get(`/v2/class/${classId}/students`).then(r => r.data);
+export const getStudentProfile = (studentId: number) =>
+  client.get(`/v2/student/${studentId}/profile`).then(r => r.data);
+export const getMigrationRecommend = (targetClassId: number) =>
+  client.get('/v2/migration/recommend', { params: { target_class_id: targetClassId } }).then(r => r.data);
+
+// Lesson Plan & Reflection
+export const generateLessonPlan = (data: { class_id: number; lesson_topic: string; duration?: number }) =>
+  client.post('/v2/lesson-plan/generate', data).then(r => r.data);
+export const generateReflection = (data: { class_id: number; observation_id?: number }) =>
+  client.post('/v2/reflection/generate', data).then(r => r.data);
+
+// Data Assets
+export const getCatalogSummary = () => client.get('/v2/catalog/summary').then(r => r.data);
+export const getCatalogQuality = () => client.get('/v2/catalog/quality').then(r => r.data);
+export const getDataLineageList = () => client.get('/v2/catalog/lineage').then(r => r.data);
+export const getEffectivenessDashboard = () => client.get('/v2/dashboard/effectiveness').then(r => r.data);
+export const getAuditLogs = (page = 1, size = 20) =>
+  client.get('/v2/audit/logs', { params: { page, size } }).then(r => r.data);
+
+// Notifications
+export const getNotifications = (unreadOnly = false) =>
+  client.get('/v2/notifications', { params: { unread_only: unreadOnly } }).then(r => r.data);
+export const markNotificationRead = (id: number) => client.put(`/v2/notifications/${id}/read`).then(r => r.data);
+export const markAllNotificationsRead = () => client.put('/v2/notifications/read-all').then(r => r.data);

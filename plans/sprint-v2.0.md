@@ -8,15 +8,16 @@
 ## 里程碑总览
 
 ```
-Sprint 3 (3周)          Sprint 4 (3周)
-模式迁移 + 智能备课      数据资产 + 平台运营
-─────────────────────────────────────────→
-个体画像                 数据资产目录
-跨课迁移引擎             数据血缘追踪
-智能备课助手             效果仪表盘
-课后反思助手             操作审计日志
+Sprint 3 (3周)          Sprint 4 (2.5周)       收尾 (0.5周)
+模式迁移 + 智能备课      数据资产 + 平台运营     PostgreSQL 迁移
+─────────────────────────────────────────────────────────────→
+个体画像                 数据资产目录            SQLite → PostgreSQL
+跨课迁移引擎             数据血缘追踪            Alembic + Redis
+智能备课助手             效果仪表盘              docker-compose
+课后反思助手             操作审计日志            回归测试
                          消息通知
-                         SQLite → PostgreSQL
+
+开发全程使用 SQLite（零依赖、秒启动），功能完成后一次性切 PostgreSQL
 ```
 
 ---
@@ -186,30 +187,14 @@ def assess_migration_risk(source_mode, target_class) -> dict:
 
 ## Sprint 4: 数据资产管理（第4-6周）
 
+> ⚠️ 开发全程继续使用 SQLite。PostgreSQL 迁移放在全部功能完成后的收尾阶段。
+
 ### 目标
 让平台从"单机工具"升级为"可运营的数据资产平台"。
 
-### 4.1 数据库升级（2天）
-
-**SQLite → PostgreSQL 迁移**
-
-| 步骤 | 说明 |
-|------|------|
-| 1. 引入 Alembic | `alembic init migrations` |
-| 2. 自动生成初始迁移 | `alembic revision --autogenerate -m "init"` |
-| 3. 配置多环境 | development / production 两套数据库 URL |
-| 4. 引入 Redis | 缓存画像计算结果（10分钟 TTL），减少重复计算 |
-| 5. 连接池配置 | PostgreSQL: pool_size=10, max_overflow=20 |
-| 6. 写入 `docker-compose.yml` | 一键启动 PostgreSQL + Redis + App |
-
-**文件变更**:
-- `backend/app/config.py` → 新增 `DATABASE_URL`、`REDIS_URL` 环境变量读取
-- `backend/alembic/` → 自动生成
-- `backend/docker-compose.yml` → 新增
-
 ---
 
-### 4.2 数据资产目录（2天）
+### 4.1 数据资产目录（2天）
 
 **文件**: `backend/app/services/data_catalog.py`
 
@@ -236,7 +221,7 @@ def assess_migration_risk(source_mode, target_class) -> dict:
 
 ---
 
-### 4.3 数据血缘追踪（1.5天）
+### 4.2 数据血缘追踪（1.5天）
 
 **文件**: `backend/app/services/data_lineage.py`
 
@@ -269,7 +254,7 @@ def assess_migration_risk(source_mode, target_class) -> dict:
 
 ---
 
-### 4.4 效果仪表盘（1.5天）
+### 4.3 效果仪表盘（1.5天）
 
 **文件**: `frontend/src/pages/EffectivenessDashboard.tsx`
 
@@ -291,7 +276,7 @@ def assess_migration_risk(source_mode, target_class) -> dict:
 
 ---
 
-### 4.5 操作审计日志（1天）
+### 4.4 操作审计日志（1天）
 
 **文件**: `backend/app/models/audit.py`
 
@@ -312,7 +297,7 @@ def assess_migration_risk(source_mode, target_class) -> dict:
 
 ---
 
-### 4.6 消息通知（1天）
+### 4.5 消息通知（1天）
 
 **功能**: 关键事件自动通知
 
@@ -329,7 +314,7 @@ def assess_migration_risk(source_mode, target_class) -> dict:
 
 ---
 
-### 4.7 前端 — 页面开发（4天）
+### 4.6 前端 — 页面开发（4天）
 
 | 文件 | 说明 | 工作量 |
 |------|------|:------:|
@@ -341,11 +326,41 @@ def assess_migration_risk(source_mode, target_class) -> dict:
 
 ### Sprint 4 交付物
 
-- [ ] PostgreSQL + Redis 基础设施
-- [ ] Alembic 迁移管理
 - [ ] 4 个新后端模块 + 5 个新 API
 - [ ] 5 个新前端功能（4 页面 + 通知组件）
-- [ ] `docker-compose.yml`
+
+---
+
+## 收尾阶段：基础设施升级（0.5周）
+
+> 全部业务功能开发完毕并通过自测后执行。在此之前全程使用 SQLite。
+
+### 为什么放在最后？
+
+| 原因 | 说明 |
+|------|------|
+| **零依赖开发** | SQLite 无需安装任何外部服务，`pip install` 后直接 `uvicorn` 即可运行 |
+| **秒级启动** | 删库重建 → `python seed_data.py` 耗时 < 2 秒，迭代极快 |
+| **单文件便携** | `xczs.db` 一个文件即完整数据库，演示时可复制到任何机器 |
+| **避免双重维护** | 不在开发中同时维护 SQLite 和 PostgreSQL 两套 DDL |
+
+### 迁移步骤
+
+| 步骤 | 说明 | 耗时 |
+|------|------|:--:|
+| 1. 引入 Alembic | `alembic init migrations`，基于 SQLAlchemy models 自动生成迁移脚本 | 1h |
+| 2. `config.py` 改造 | 根据 `ENV` 环境变量切换 SQLite / PostgreSQL URL | 0.5h |
+| 3. Redis 缓存 | 缓存画像计算结果（10分钟 TTL），减少重复计算 | 1h |
+| 4. `docker-compose.yml` | 一键启动 PostgreSQL 16 + Redis 7 + App | 1h |
+| 5. 全量回归测试 | 种子数据 → 所有 API → 所有页面 | 2h |
+| 6. 性能验证 | 对比 SQLite vs PostgreSQL 在大数据量下的分析接口响应时间 | 1h |
+
+### 新增文件
+
+- `backend/alembic/` — 自动生成
+- `backend/alembic.ini`
+- `docker-compose.yml`（项目根目录）
+- `backend/app/config.py` → 新增 `DATABASE_URL`、`REDIS_URL` 环境变量读取
 
 ---
 
@@ -419,54 +434,21 @@ def assess_migration_risk(source_mode, target_class) -> dict:
 
 ---
 
-## 基础设施升级
-
-### docker-compose.yml
-
-```yaml
-version: '3.8'
-services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: xczs
-      POSTGRES_USER: xczs
-      POSTGRES_PASSWORD: xczs_dev
-    ports: ["5432:5432"]
-    volumes: ["pgdata:/var/lib/postgresql/data"]
-
-  redis:
-    image: redis:7-alpine
-    ports: ["6379:6379"]
-
-volumes:
-  pgdata:
-```
-
-### 环境变量（.env）
-
-```
-DATABASE_URL=postgresql://xczs:xczs_dev@localhost:5432/xczs
-REDIS_URL=redis://localhost:6379/0
-SECRET_KEY=change-in-production
-```
-
----
-
 ## 团队分工建议
 
 | 角色 | Sprint 3 | Sprint 4 | 总工作量 |
 |------|----------|----------|:------:|
-| 后端 ×2 | 个体画像 + 迁移引擎 + 备课助手 | 数据资产 + 血缘 + 审计 + 通知 | 各 3 周 |
-| 前端 ×2 | StudentProfile + Migration + LessonPlan + Reflection | DataCatalog + Lineage + Dashboard + AuditLog + Notification | 各 3 周 |
-| DevOps | — | PostgreSQL + Redis + Alembic + Docker | 1 周 |
-| 测试 | S3 集成测试 | S4 集成测试 + 性能测试 | 各 0.5 周 |
+| 后端 ×2 | 个体画像 + 迁移引擎 + 备课助手 | 数据资产 + 血缘 + 审计 + 通知 | 各 2.5 周 |
+| 前端 ×2 | StudentProfile + Migration + LessonPlan + Reflection | DataCatalog + Lineage + Dashboard + AuditLog + Notification | 各 2.5 周 |
+| 全栈/DevOps | — | —（功能开发阶段不涉及） | 收尾 0.5 周 |
+| 测试 | S3 集成测试 | S4 集成测试 | 各 0.5 周 |
+
+> 💡 **小团队策略**：如果是 2-3 人团队，后端和前端可由同一人负责，DevOps 收尾阶段谁有空谁做。PostgreSQL 迁移是纯配置工作，不需要专职运维。
 
 ---
 
 ## v2.0 完成标准
 
-- [ ] PostgreSQL 替换 SQLite，Alembic 迁移可用
 - [ ] 个体画像至少覆盖 80 名学生
 - [ ] 跨课程模式迁移至少 2 组课程可用
 - [ ] 智能备课助手可生成完整教案框架
@@ -474,6 +456,7 @@ SECRET_KEY=change-in-production
 - [ ] 数据血缘可追踪至少 2 条分析链路
 - [ ] 效果仪表盘含 ≥5 个核心指标
 - [ ] 审计日志记录全部关键操作
-- [ ] Docker 一键启动全部服务
 - [ ] 前端 20 页面全部零 JS 错误
 - [ ] 全链路测试: 导入→画像→对比→迁移→备课→反思→数据资产
+- [ ] 📦 收尾: PostgreSQL 替换 SQLite，Alembic 迁移可用
+- [ ] 📦 收尾: Docker 一键启动全部服务（PostgreSQL + Redis + App）

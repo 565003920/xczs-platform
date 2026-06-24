@@ -23,12 +23,13 @@ export default function ModeMigration() {
     getMigration(classId).then(setData).finally(() => setLoading(false));
   }, [classId]);
 
+  const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
+
   return (
     <div>
       <h2 style={{ marginBottom: 24 }}>模式迁移推荐</h2>
       <div style={{ marginBottom: 20 }}>
         <Select showSearch placeholder="选择目标班级" style={{ width: 320 }} value={classId} onChange={setClassId}
-          const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
           options={classes.map(c => ({ label: `${courseMap[c.course_id] || '?'} — ${c.name}`, value: c.id }))} />
       </div>
 

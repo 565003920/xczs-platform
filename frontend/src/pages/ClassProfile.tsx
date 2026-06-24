@@ -27,6 +27,8 @@ export default function ClassProfile() {
       .finally(() => setLoading(false));
   }, [selectedId]);
 
+  const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
+
   const radarOption = profile ? {
     tooltip: {},
     radar: {
@@ -88,7 +90,6 @@ export default function ClassProfile() {
           value={selectedId}
           onChange={(v) => setSelectedId(v)}
           filterOption={(input, option) => (option?.label as string || '').includes(input)}
-          const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
           options={classes.map((c) => ({ label: `${courseMap[c.course_id] || '?'} — ${c.name}`, value: c.id }))}
         />
       </div>

@@ -2,19 +2,20 @@ import { useState, useEffect } from 'react';
 import { Card, Row, Col, Select, Statistic, Table, Spin, Empty, Typography, Tag } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
-import { getClasses, getModeComparison } from '../api/endpoints';
-import type { ClassModel } from '../types';
+import { getClasses, getCourses, getModeComparison } from '../api/endpoints';
+import type { ClassModel, Course } from '../types';
 
 const { Text, Title } = Typography;
 
 export default function ComparisonAB() {
   const [classes, setClasses] = useState<ClassModel[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [classA, setClassA] = useState<number | undefined>();
   const [classB, setClassB] = useState<number | undefined>();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { getClasses().then(setClasses); }, []);
+  useEffect(() => { Promise.all([getClasses(), getCourses()]).then(([cl, co]) => { setClasses(cl); setCourses(co); }); }, []);
 
   useEffect(() => {
     if (!classA || !classB || classA === classB) return;
@@ -22,7 +23,8 @@ export default function ComparisonAB() {
     getModeComparison(classA, classB).then(setData).finally(() => setLoading(false));
   }, [classA, classB]);
 
-  const clsOpts = classes.map(c => ({ label: c.name, value: c.id }));
+  const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
+  const clsOpts = classes.map(c => ({ label: `${courseMap[c.course_id] || '?'} — ${c.name}`, value: c.id }));
 
   const dualRadarOption = data ? {
     tooltip: {},

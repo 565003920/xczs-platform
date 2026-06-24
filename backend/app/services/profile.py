@@ -79,6 +79,7 @@ def compute_profile(db: Session, cls: ClassModel) -> ClassProfileResponse:
         class_id=cls.id,
         class_name=cls.name,
         course_name=cls.course.name if cls.course else "",
+        teacher_name=cls.course.teacher_name if cls.course else "",
         dimensions=dimensions,
         weak_points=weak_points,
         strengths=strengths,

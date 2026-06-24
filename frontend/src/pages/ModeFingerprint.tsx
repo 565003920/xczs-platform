@@ -2,18 +2,19 @@ import { useState, useEffect } from 'react';
 import { Card, Row, Col, Select, List, Tag, Spin, Empty, Typography } from 'antd';
 import { BulbOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
-import { getClasses, getModeFingerprint } from '../api/endpoints';
-import type { ClassModel, ModeFingerprint as FingerprintType } from '../types';
+import { getClasses, getCourses, getModeFingerprint } from '../api/endpoints';
+import type { ClassModel, Course, ModeFingerprint as FingerprintType } from '../types';
 
 const { Title, Paragraph, Text } = Typography;
 
 export default function ModeFingerprint() {
   const [classes, setClasses] = useState<ClassModel[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [selectedId, setSelectedId] = useState<number | undefined>();
   const [fingerprint, setFingerprint] = useState<FingerprintType | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { getClasses().then(setClasses); }, []);
+  useEffect(() => { Promise.all([getClasses(), getCourses()]).then(([cl, co]) => { setClasses(cl); setCourses(co); }); }, []);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -71,7 +72,8 @@ export default function ModeFingerprint() {
           value={selectedId}
           onChange={(v) => setSelectedId(v)}
           filterOption={(input, option) => (option?.label as string || '').includes(input)}
-          options={classes.map((c) => ({ label: c.name, value: c.id }))}
+          const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
+          options={classes.map((c) => ({ label: `${courseMap[c.course_id] || '?'} — ${c.name}`, value: c.id }))}
         />
       </div>
 

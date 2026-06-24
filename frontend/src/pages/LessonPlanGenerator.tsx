@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Card, Select, Input, InputNumber, Button, Spin, Empty, Tag, Timeline, Descriptions, Typography, Alert, Row, Col } from 'antd';
-import { getClasses } from '../api/endpoints';
-import type { ClassModel } from '../types';
+import { getClasses, getCourses } from '../api/endpoints';
+import type { ClassModel, Course } from '../types';
 
 const { Text } = Typography;
 
 export default function LessonPlanGenerator() {
   const [classes, setClasses] = useState<ClassModel[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [classId, setClassId] = useState<number | undefined>();
   const [topic, setTopic] = useState('');
   const [duration, setDuration] = useState(50);
   const [plan, setPlan] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { getClasses().then(setClasses); }, []);
+  useEffect(() => { Promise.all([getClasses(), getCourses()]).then(([cl, co]) => { setClasses(cl); setCourses(co); }); }, []);
 
   const generate = async () => {
     if (!classId) return;
@@ -27,13 +28,15 @@ export default function LessonPlanGenerator() {
     } finally { setLoading(false); }
   };
 
+  const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
+
   return (
     <div>
       <h2 style={{ marginBottom: 24 }}>智能备课助手</h2>
       <Card style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div><Text>班级</Text><Select showSearch placeholder="选择班级" style={{ width: 220 }} value={classId} onChange={setClassId}
-            options={classes.map(c => ({ label: c.name, value: c.id }))} /></div>
+          <div><Text>班级</Text><Select showSearch placeholder="选择班级" style={{ width: 260 }} value={classId} onChange={setClassId}
+            options={classes.map(c => ({ label: `${courseMap[c.course_id] || '?'} — ${c.name}`, value: c.id }))} /></div>
           <div><Text>课题</Text><Input placeholder="例：二叉树遍历" style={{ width: 200 }} value={topic} onChange={e => setTopic(e.target.value)} /></div>
           <div><Text>时长(分钟)</Text><InputNumber min={20} max={180} value={duration} onChange={v => setDuration(v || 50)} /></div>
           <Button type="primary" loading={loading} onClick={generate}>生成教案</Button>

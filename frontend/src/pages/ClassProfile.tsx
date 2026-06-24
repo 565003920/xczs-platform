@@ -2,20 +2,21 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, Row, Col, Select, Statistic, Table, Spin, Empty, Typography } from 'antd';
 import ReactECharts from 'echarts-for-react';
-import { getClasses, getClassProfile } from '../api/endpoints';
-import type { ClassModel, ClassProfile as ProfileType } from '../types';
+import { getClasses, getCourses, getClassProfile } from '../api/endpoints';
+import type { ClassModel, Course, ClassProfile as ProfileType } from '../types';
 
 const { Text } = Typography;
 
 export default function ClassProfile() {
   const [searchParams] = useSearchParams();
   const [classes, setClasses] = useState<ClassModel[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [selectedId, setSelectedId] = useState<number | undefined>(Number(searchParams.get('class_id')) || undefined);
   const [profile, setProfile] = useState<ProfileType | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getClasses().then(setClasses);
+    Promise.all([getClasses(), getCourses()]).then(([cl, co]) => { setClasses(cl); setCourses(co); });
   }, []);
 
   useEffect(() => {
@@ -87,7 +88,8 @@ export default function ClassProfile() {
           value={selectedId}
           onChange={(v) => setSelectedId(v)}
           filterOption={(input, option) => (option?.label as string || '').includes(input)}
-          options={classes.map((c) => ({ label: c.name, value: c.id }))}
+          const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
+          options={classes.map((c) => ({ label: `${courseMap[c.course_id] || '?'} — ${c.name}`, value: c.id }))}
         />
       </div>
 

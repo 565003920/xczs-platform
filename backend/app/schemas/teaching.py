@@ -169,6 +169,7 @@ class ClassProfileResponse(BaseModel):
     class_id: int
     class_name: str
     course_name: str
+    teacher_name: str = ""
     dimensions: DimensionScores
     weak_points: List[KnowledgePoint] = []
     strengths: List[KnowledgePoint] = []
@@ -200,6 +201,7 @@ class DiagnosisResponse(BaseModel):
     class_id: int
     class_name: str
     course_name: str
+    teacher_name: str = ""
     profile: ClassProfileResponse
     fingerprint: ModeFingerprintResponse
     teaching_mode_suggestion: str = ""

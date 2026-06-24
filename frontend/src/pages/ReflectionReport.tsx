@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Card, Select, Button, Spin, Empty, Descriptions, Tag, List, Typography, Progress } from 'antd';
 import { BulbOutlined, WarningOutlined } from '@ant-design/icons';
-import { getClasses } from '../api/endpoints';
-import type { ClassModel } from '../types';
+import { getClasses, getCourses } from '../api/endpoints';
+import type { ClassModel, Course } from '../types';
 
 const { Text, Title } = Typography;
 
 export default function ReflectionReport() {
   const [classes, setClasses] = useState<ClassModel[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [classId, setClassId] = useState<number | undefined>();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { getClasses().then(setClasses); }, []);
+  useEffect(() => { Promise.all([getClasses(), getCourses()]).then(([cl, co]) => { setClasses(cl); setCourses(co); }); }, []);
 
   const generate = async () => {
     if (!classId) return;
@@ -35,7 +36,8 @@ export default function ReflectionReport() {
       <Card style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
           <div><Text>班级</Text><Select showSearch placeholder="选择班级" style={{ width: 220 }} value={classId} onChange={setClassId}
-            options={classes.map(c => ({ label: c.name, value: c.id }))} /></div>
+          const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
+            options={classes.map(c => ({ label: `${courseMap[c.course_id] || '?'} — ${c.name}`, value: c.id }))} /></div>
           <Button type="primary" loading={loading} onClick={generate}>生成反思报告</Button>
         </div>
       </Card>

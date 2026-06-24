@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Select, Spin, Empty, Descriptions, Table, Tag, Typography, Row, Col } from 'antd';
-import { getClasses, getStudentProfile } from '../api/endpoints';
-import type { ClassModel } from '../types';
+import { getClasses, getCourses, getStudentProfile } from '../api/endpoints';
+import type { ClassModel, Course } from '../types';
 
 const { Text } = Typography;
 // Local API call
@@ -10,12 +10,13 @@ const getClassStudentsLocal = (id: number) => fetch(`/api/v2/class/${id}/student
 
 export default function StudentProfile() {
   const [classes, setClasses] = useState<ClassModel[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [classId, setClassId] = useState<number | undefined>();
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { getClasses().then(setClasses); }, []);
+  useEffect(() => { Promise.all([getClasses(), getCourses()]).then(([cl, co]) => { setClasses(cl); setCourses(co); }); }, []);
 
   useEffect(() => {
     if (!classId) return;
@@ -28,7 +29,8 @@ export default function StudentProfile() {
       <h2 style={{ marginBottom: 24 }}>个体学情画像</h2>
       <div style={{ marginBottom: 20 }}>
         <Select showSearch placeholder="选择班级" style={{ width: 320 }} value={classId} onChange={setClassId}
-          options={classes.map(c => ({ label: c.name, value: c.id }))} />
+          const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
+          options={classes.map(c => ({ label: `${courseMap[c.course_id] || '?'} — ${c.name}`, value: c.id }))} />
       </div>
 
       {loading && <Spin size="large" style={{ display: 'block', margin: '40px auto' }} />}

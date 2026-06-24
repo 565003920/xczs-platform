@@ -2,18 +2,19 @@ import { useState, useEffect } from 'react';
 import { Card, Row, Col, Select, Table, Descriptions, Tag, Spin, Empty, Typography, Button, Alert } from 'antd';
 import { PrinterOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
-import { getClasses, getDiagnosis } from '../api/endpoints';
-import type { ClassModel, DiagnosisReport as DiagType } from '../types';
+import { getClasses, getCourses, getDiagnosis } from '../api/endpoints';
+import type { ClassModel, Course, DiagnosisReport as DiagType } from '../types';
 
 const { Text } = Typography;
 
 export default function DiagnosisReport() {
   const [classes, setClasses] = useState<ClassModel[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [selectedId, setSelectedId] = useState<number | undefined>();
   const [report, setReport] = useState<DiagType | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { getClasses().then(setClasses); }, []);
+  useEffect(() => { Promise.all([getClasses(), getCourses()]).then(([cl, co]) => { setClasses(cl); setCourses(co); }); }, []);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -71,7 +72,8 @@ export default function DiagnosisReport() {
           value={selectedId}
           onChange={(v) => setSelectedId(v)}
           filterOption={(input, option) => (option?.label as string || '').includes(input)}
-          options={classes.map((c) => ({ label: c.name, value: c.id }))}
+          const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
+          options={classes.map((c) => ({ label: `${courseMap[c.course_id] || '?'} — ${c.name}`, value: c.id }))}
         />
       </div>
 
@@ -84,6 +86,7 @@ export default function DiagnosisReport() {
           <Descriptions bordered column={2} size="small" style={{ marginBottom: 20 }}>
             <Descriptions.Item label="班级">{report.class_name}</Descriptions.Item>
             <Descriptions.Item label="课程">{report.course_name}</Descriptions.Item>
+            <Descriptions.Item label="授课教师">{report.teacher_name || '—'}</Descriptions.Item>
             <Descriptions.Item label="平均成绩">{report.profile.avg_grade} 分</Descriptions.Item>
             <Descriptions.Item label="学生人数">{report.profile.student_count}</Descriptions.Item>
             <Descriptions.Item label="教学模式">

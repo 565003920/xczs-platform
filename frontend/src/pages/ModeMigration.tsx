@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Card, Select, Spin, Empty, Tag, List, Typography, Progress, Descriptions } from 'antd';
 import { SwapOutlined } from '@ant-design/icons';
-import { getClasses } from '../api/endpoints';
-import type { ClassModel } from '../types';
+import { getClasses, getCourses } from '../api/endpoints';
+import type { ClassModel, Course } from '../types';
 
 const { Text, Title } = Typography;
 
@@ -10,11 +10,12 @@ const getMigration = (classId: number) => fetch(`/api/v2/migration/recommend?tar
 
 export default function ModeMigration() {
   const [classes, setClasses] = useState<ClassModel[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [classId, setClassId] = useState<number | undefined>();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { getClasses().then(setClasses); }, []);
+  useEffect(() => { Promise.all([getClasses(), getCourses()]).then(([cl, co]) => { setClasses(cl); setCourses(co); }); }, []);
 
   useEffect(() => {
     if (!classId) return;
@@ -27,7 +28,8 @@ export default function ModeMigration() {
       <h2 style={{ marginBottom: 24 }}>模式迁移推荐</h2>
       <div style={{ marginBottom: 20 }}>
         <Select showSearch placeholder="选择目标班级" style={{ width: 320 }} value={classId} onChange={setClassId}
-          options={classes.map(c => ({ label: c.name, value: c.id }))} />
+          const courseMap = Object.fromEntries(courses.map(c => [c.id, c.name]));
+          options={classes.map(c => ({ label: `${courseMap[c.course_id] || '?'} — ${c.name}`, value: c.id }))} />
       </div>
 
       {loading && <Spin size="large" style={{ display: 'block', margin: '40px auto' }} />}

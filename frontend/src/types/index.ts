@@ -91,6 +91,7 @@ export interface ClassProfile {
   class_id: number;
   class_name: string;
   course_name: string;
+  teacher_name?: string;
   dimensions: DimensionScores;
   weak_points: KnowledgePoint[];
   strengths: KnowledgePoint[];
@@ -120,6 +121,7 @@ export interface DiagnosisReport {
   class_id: number;
   class_name: string;
   course_name: string;
+  teacher_name?: string;
   profile: ClassProfile;
   fingerprint: ModeFingerprint;
   teaching_mode_suggestion: string;
